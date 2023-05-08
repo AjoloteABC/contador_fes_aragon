@@ -1,8 +1,8 @@
 #include <SPI.h>
 #include <MFRC522.h>
 
-#define SS_PIN   10
-#define RST_PIN   9
+#define SS_PIN 10
+#define RST_PIN 9
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
@@ -18,9 +18,15 @@ int pinFototransistor02 = 2;
 int pinFototransistor03 = 3;
 int pinFototransistor04 = 4;
 
-// Estado de los fototransistores
+// Finalizar transacción
+
+int recargar = 6;
+
+// Estado de la moneda
 
 bool monedaNueva = false;
+
+// Estado de los fototransistores
 
 bool estadoFototransistorIn = false;
 bool estadoFototransistorOut = true;
@@ -32,7 +38,6 @@ bool estadoFototransistor04 = false;
 
 // Conteo de cada denominacion
 
-int monedas50 = 0;
 int monedas01 = 0;
 int monedas02 = 0;
 int monedas05 = 0;
@@ -40,125 +45,84 @@ int monedas10 = 0;
 
 int montoIngresado = 0;
 
-// Finalizar transacción
-
-bool recargar = false;
-
-
-void contadorMonedas()
+// [04] Registrar la entrada y salida de la moneda
+void registrarInOut()
 {
-  if (estadoFototransistor02 == 0)
-  {
-    monedas01 += 1;
-    return;
-  }
-
-  if (estadoFototransistor03 == 0)
-  {
-    monedas02 += 1;
-    return;
-  }
-
-  if (estadoFototransistor04 == 0)
-  {
-    monedas05 += 1;
-    return;
-  }
-
-  monedas10 += 1;
-  return;
-}
-
-
-void setup()
-{
-  Serial.begin(9600);
-
-  SPI.begin();
-
-  mfrc522.PCD_Init();
-}
-
-void loop()
-{
-  // [01] Si no hay una tarjeta presente en el módulo lector
-  if (! mfrc522.PICC_IsNewCardPresent())
-  {
-    // Serial.println("Ingresa Coin!");
-    // delay(retraso);
-
-    return;
-  }
-
-  // [02] Si no podemos obtener información del lector
-  if (! mfrc522.PICC_ReadCardSerial())
-  {
-    // Serial.println("Sin comunicacion");
-    // delay(retraso);
-
-    return;
-  }
-
-  // VERIFICAR SI EL USUARIO EXISTE EN LA BASE DE DATOS
-
-  Serial.println("Saldo ini: ");
-  Serial.println("No pasar de 120");
-  Serial.println();
-  delay(retraso);
-
-  // [03] Monitoreo del contador
-  if (digitalRead(pinFototransistorIn)) // Entrada de moneda
+  if (digitalRead(pinFototransistorIn))
   {
     estadoFototransistorIn = true;
     estadoFototransistorOut = false;
   }
-  if (digitalRead(pinFototransistorOut)) // Salida de moneda
+  if (digitalRead(pinFototransistorOut))
   {
     estadoFototransistorIn = false;
     estadoFototransistorOut = true;
   }
+}
 
-
-  // [04] Hay que esperar a que entre la moneda
-  // para registrar los fototransistores
+// [05] Tiene que entrar la moneda para registrar los fototransistores
+void registrarFototransistores()
+{
   if (estadoFototransistorIn == true && estadoFototransistorOut == false)
   {
     monedaNueva = true;
 
-    if (digitalRead(pinFototransistor01))
+    if (digitalRead(pinFototransistor01)) // Moneda 01 peso
     {
       estadoFototransistor01 = true;
     }
-
-    if (digitalRead(pinFototransistor02))
+    if (digitalRead(pinFototransistor02)) // Moneda 02 pesos
     {
       estadoFototransistor02 = true;
     }
-
-    if (digitalRead(pinFototransistor03))
+    if (digitalRead(pinFototransistor03)) // Moneda 05 pesos
     {
       estadoFototransistor03 = true;
     }
-
-    if (digitalRead(pinFototransistor04))
+    if (digitalRead(pinFototransistor04)) // Moneda 10 pesos
     {
       estadoFototransistor04 = true;
     }
   }
+}
 
-  // [05] Hay que esperar a que salga la moneda y que sea nueva
+void identificarMoneda()
+{
+  if (estadoFototransistor02 == false)
+  {
+    monedas01 += 1;
+    return;
+  }
+  if (estadoFototransistor03 == false)
+  {
+    monedas02 += 1;
+    return;
+  }
+  if (estadoFototransistor04 == false)
+  {
+    monedas05 += 1;
+    return;
+  }
+  monedas10 += 1;
+  return;
+}
+
+// [06] Tiene que salir la moneda y que sea nueva...
+void registrarMoneda()
+{
   if (estadoFototransistorIn == false && estadoFototransistorOut == true && monedaNueva == true)
   {
     monedaNueva = false;
 
-    // para identificarla y registrarla
-    contadorMonedas();
+    // para identificarla...
+    identificarMoneda();
 
     estadoFototransistor01 = false;
     estadoFototransistor02 = false;
     estadoFototransistor03 = false;
     estadoFototransistor04 = false;
 
+    // y registrarla
     montoIngresado = (monedas01 * 1) + (monedas02 * 2) + (monedas05 * 5) + (monedas10 * 10);
 
     // CAMBIAR A: SI EL MONTO INGRESADO + EL SALDO INICIAL ES > 120
@@ -172,14 +136,19 @@ void loop()
     Serial.println();
     delay(retraso);
   }
+}
 
-
+// [07] Finalizar el proceso de recarga
+void recargarSaldoIngresado()
+{
   if (digitalRead(recargar))
   {
     // REALIZAR RECARGA
-    
-    // MOSTRAR SALDO TOTAL
+
+    // Mostrar el saldo total
+    Serial.println("----------------");
     Serial.println("Saldo tot: ");
+    Serial.println();
 
     montoIngresado = 0;
 
@@ -188,8 +157,50 @@ void loop()
     monedas05 = 0;
     monedas10 = 0;
 
-    recargar = false;
-
     mfrc522.PICC_HaltA();
+  }
+}
+
+void setup()
+{
+  Serial.begin(9600);
+
+  SPI.begin();
+
+  mfrc522.PCD_Init();
+}
+
+void loop()
+{
+  // [01] Si no hay una tarjeta presente en el módulo lector
+  if (!mfrc522.PICC_IsNewCardPresent())
+  {
+    Serial.println("Ingresa Tarjeta");
+    Serial.println();
+    delay(retraso);
+    return;
+  }
+
+  // [02] Mientras haya comuniación con la tarjeta
+  while (mfrc522.PICC_ReadCardSerial())
+  {
+    // [03] VERIFICAR SI EL USUARIO EXISTE EN LA BASE DE DATOS
+
+    Serial.println("Saldo ini: ");
+    Serial.println("No pasar de 120");
+    Serial.println();
+    delay(retraso);
+
+    // [04] Registrar la entrada y salida de la moneda
+    registrarInOut();
+
+    // [05] Tiene que entrar la moneda para registrar los fototransistores
+    registrarFototransistores();
+
+    // [06] Tiene que salir la moneda y que sea nueva para identificarla y registrarla
+    registrarMoneda();
+
+    // [07] Finalizar el proceso de recarga
+    void recargarSaldoIngresado();
   }
 }
