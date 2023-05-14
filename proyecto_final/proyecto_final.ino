@@ -1,4 +1,4 @@
-#include <SPI.h>
+p#include <SPI.h>
 #include <MFRC522.h>
 
 #define SS_PIN 10
@@ -143,6 +143,9 @@ void recargarSaldoIngresado()
 {
   if (digitalRead(recargar))
   {
+    Serial.println("Procesando...");
+    delay(3000);
+
     // REALIZAR RECARGA
 
     // Mostrar el saldo total
@@ -168,6 +171,16 @@ void setup()
   SPI.begin();
 
   mfrc522.PCD_Init();
+
+  pinMode(pinFototransistorIn, INPUT);
+  pinMode(pinFototransistorOut, INPUT);
+
+  pinMode(pinFototransistor01, INPUT);
+  pinMode(pinFototransistor02, INPUT);
+  pinMode(pinFototransistor03, INPUT);
+  pinMode(pinFototransistor04, INPUT);
+  
+  pinMode(recargar, INPUT);
 }
 
 void loop()
@@ -201,6 +214,6 @@ void loop()
     registrarMoneda();
 
     // [07] Finalizar el proceso de recarga
-    void recargarSaldoIngresado();
+    recargarSaldoIngresado();
   }
 }
