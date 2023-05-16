@@ -23,11 +23,11 @@ int pinFototransistor04 = 4;
 
 // Finalizar transacción
 
-int recargar = 6;
+int pinRecargar = 6;
 
 // Buzzer conector PC BIOS
 
-int speaker = 8;
+int pinSpeaker = 8;
 
 // Saldo pendiente
 
@@ -61,14 +61,14 @@ void registrarInOut()
 {
   if (digitalRead(pinFototransistorIn))
   {
-    Serial.println("Entrada");
+    // Serial.println("Entrada");
 
     estadoFototransistorIn = true;
     estadoFototransistorOut = false;
   }
   if (digitalRead(pinFototransistorOut))
   {
-    Serial.println("Salida");
+    // Serial.println("Salida");
 
     estadoFototransistorIn = false;
     estadoFototransistorOut = true;
@@ -155,9 +155,10 @@ void registrarMoneda()
 // [07] Finalizar el proceso de recarga
 void recargarSaldoIngresado()
 {
-  if (digitalRead(recargar) && saldoPendiente)
+  if (digitalRead(pinRecargar) && saldoPendiente)
   {
     Serial.println("Procesando...");
+    Serial.println();
     delay(3000);
 
     // REALIZAR RECARGA
@@ -167,11 +168,11 @@ void recargarSaldoIngresado()
     Serial.println("Saldo tot: ");
     Serial.println();
 
-    for (int i = 0; i <= 2; i++)
+    for (int i = 0; i <= 3; i++)
     {
-      tone(speaker, 200);
+      tone(pinSpeaker, 200);
       delay(500);
-      noTone(speaker);
+      noTone(pinSpeaker);
       delay(250);
     }
 
@@ -204,36 +205,39 @@ void setup()
   pinMode(pinFototransistor03, INPUT);
   pinMode(pinFototransistor04, INPUT);
 
-  pinMode(recargar, INPUT);
+  pinMode(pinRecargar, INPUT);
 
-  pinMode(speaker, OUTPUT);
+  pinMode(pinSpeaker, OUTPUT);
 }
 
 void loop()
 {
+  // El While no impide que se ejecute la impresión "LOOP PRINCIPAL".
+  // Durante el loop sólo hay que utilizar una vez IsNewCardPresent y ReadCardSerial
   // Serial.println("LOOP PRINCIPAL");
 
   // [01] Si no hay una tarjeta presente en el módulo lector
-  if (! mfrc522.PICC_IsNewCardPresent())
+  if (!mfrc522.PICC_IsNewCardPresent())
   {
     if (saldoPendiente)
     {
-      Serial.println("Regresar Tarjeta...");
+      Serial.println("Regresar Tarjeta");
       Serial.println();
 
-      tone(speaker, 200);
+      tone(pinSpeaker, 200);
       delay(500);
-      noTone(speaker);
+      noTone(pinSpeaker);
       delay(250);
       return;
     }
-    Serial.println("Ingresa Tarjeta!");
+    Serial.println("Ingresar Tarjeta");
     Serial.println();
     delay(retraso);
     return;
   }
 
-  // [02] Mientras haya comuniación con la tarjeta
+  // [02] Mientras haya comuniación con la tarjeta.
+  // El while se debe ocupar en lugar de un if
   while (mfrc522.PICC_ReadCardSerial())
   {
     /*
@@ -245,11 +249,11 @@ void loop()
         Serial.println();
         delay(retraso);
 
-        for (int i = 0; i <= 2; i++)
+        for (int i = 0; i <= 3; i++)
         {
-          tone(speaker, 200);
+          tone(pinSpeaker, 200);
           delay(500);
-          noTone(speaker);
+          noTone(pinSpeaker);
           delay(250);
         }
         mfrc522.PICC_HaltA();
