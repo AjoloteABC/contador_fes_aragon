@@ -1,4 +1,4 @@
-p#include <SPI.h>
+#include<SPI.h>
 #include <MFRC522.h>
 
 #define SS_PIN 10
@@ -6,7 +6,10 @@ p#include <SPI.h>
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
-int retraso = 500;
+// Entre menor el retraso, menos probabilidad
+// de no registrar una moneda
+
+int retraso = 200;
 
 // Pines de los fototransistores
 
@@ -21,6 +24,14 @@ int pinFototransistor04 = 4;
 // Finalizar transacción
 
 int recargar = 6;
+
+// Buzzer conector PC BIOS
+
+int speaker = 8;
+
+// Saldo pendiente
+
+bool saldoPendiente = false;
 
 // Estado de la moneda
 
@@ -50,11 +61,15 @@ void registrarInOut()
 {
   if (digitalRead(pinFototransistorIn))
   {
+    Serial.println("Entrada");
+
     estadoFototransistorIn = true;
     estadoFototransistorOut = false;
   }
   if (digitalRead(pinFototransistorOut))
   {
+    Serial.println("Salida");
+
     estadoFototransistorIn = false;
     estadoFototransistorOut = true;
   }
@@ -63,9 +78,13 @@ void registrarInOut()
 // [05] Tiene que entrar la moneda para registrar los fototransistores
 void registrarFototransistores()
 {
-  if (estadoFototransistorIn == true && estadoFototransistorOut == false)
+  if (estadoFototransistorIn && !estadoFototransistorOut)
   {
     monedaNueva = true;
+
+    // Debe de asignarse el valor en registrarFotorainsistores
+    // y no en registrarMoneda, de lo contrario la primer moneda siempre será 01 peso
+    saldoPendiente = true;
 
     if (digitalRead(pinFototransistor01)) // Moneda 01 peso
     {
@@ -88,17 +107,17 @@ void registrarFototransistores()
 
 void identificarMoneda()
 {
-  if (estadoFototransistor02 == false)
+  if (!estadoFototransistor02)
   {
     monedas01 += 1;
     return;
   }
-  if (estadoFototransistor03 == false)
+  if (!estadoFototransistor03)
   {
     monedas02 += 1;
     return;
   }
-  if (estadoFototransistor04 == false)
+  if (!estadoFototransistor04)
   {
     monedas05 += 1;
     return;
@@ -110,7 +129,7 @@ void identificarMoneda()
 // [06] Tiene que salir la moneda y que sea nueva...
 void registrarMoneda()
 {
-  if (estadoFototransistorIn == false && estadoFototransistorOut == true && monedaNueva == true)
+  if (!estadoFototransistorIn && estadoFototransistorOut && monedaNueva)
   {
     monedaNueva = false;
 
@@ -130,18 +149,13 @@ void registrarMoneda()
     {
       montoIngresado = 120;
     }
-
-    Serial.println("Monto ing: " + String(montoIngresado));
-    Serial.println("Saldo pen: ");
-    Serial.println();
-    delay(retraso);
   }
 }
 
 // [07] Finalizar el proceso de recarga
 void recargarSaldoIngresado()
 {
-  if (digitalRead(recargar))
+  if (digitalRead(recargar) && saldoPendiente)
   {
     Serial.println("Procesando...");
     delay(3000);
@@ -153,12 +167,22 @@ void recargarSaldoIngresado()
     Serial.println("Saldo tot: ");
     Serial.println();
 
+    for (int i = 0; i <= 2; i++)
+    {
+      tone(speaker, 200);
+      delay(500);
+      noTone(speaker);
+      delay(250);
+    }
+
     montoIngresado = 0;
 
     monedas01 = 0;
     monedas02 = 0;
     monedas05 = 0;
     monedas10 = 0;
+
+    saldoPendiente = false;
 
     mfrc522.PICC_HaltA();
   }
@@ -179,16 +203,31 @@ void setup()
   pinMode(pinFototransistor02, INPUT);
   pinMode(pinFototransistor03, INPUT);
   pinMode(pinFototransistor04, INPUT);
-  
+
   pinMode(recargar, INPUT);
+
+  pinMode(speaker, OUTPUT);
 }
 
 void loop()
 {
+  // Serial.println("LOOP PRINCIPAL");
+
   // [01] Si no hay una tarjeta presente en el módulo lector
-  if (!mfrc522.PICC_IsNewCardPresent())
+  if (! mfrc522.PICC_IsNewCardPresent())
   {
-    Serial.println("Ingresa Tarjeta");
+    if (saldoPendiente)
+    {
+      Serial.println("Regresar Tarjeta...");
+      Serial.println();
+
+      tone(speaker, 200);
+      delay(500);
+      noTone(speaker);
+      delay(250);
+      return;
+    }
+    Serial.println("Ingresa Tarjeta!");
     Serial.println();
     delay(retraso);
     return;
@@ -197,12 +236,32 @@ void loop()
   // [02] Mientras haya comuniación con la tarjeta
   while (mfrc522.PICC_ReadCardSerial())
   {
-    // [03] VERIFICAR SI EL USUARIO EXISTE EN LA BASE DE DATOS
+    /*
+      [03] VERIFICAR SI EL USUARIO EXISTE EN LA BASE DE DATOS
 
-    Serial.println("Saldo ini: ");
-    Serial.println("No pasar de 120");
-    Serial.println();
-    delay(retraso);
+      Si no se encuentra el identificador en la B.D.
+
+        Serial.println("Tarjeta invalida");
+        Serial.println();
+        delay(retraso);
+
+        for (int i = 0; i <= 2; i++)
+        {
+          tone(speaker, 200);
+          delay(500);
+          noTone(speaker);
+          delay(250);
+        }
+        mfrc522.PICC_HaltA();
+    */
+
+    if (!saldoPendiente)
+    {
+      Serial.println("Saldo ini: ");
+      Serial.println("No pasar de 120");
+      Serial.println();
+      delay(retraso);
+    }
 
     // [04] Registrar la entrada y salida de la moneda
     registrarInOut();
@@ -212,6 +271,15 @@ void loop()
 
     // [06] Tiene que salir la moneda y que sea nueva para identificarla y registrarla
     registrarMoneda();
+
+    // No hay que agregar la condición monedaNueva, de lo contrario jamás hará la impresión
+    if (!estadoFototransistorIn && estadoFototransistorOut && saldoPendiente)
+    {
+      Serial.println("Monto ing: " + String(montoIngresado));
+      Serial.println("Saldo pen: ");
+      Serial.println();
+      delay(retraso);
+    }
 
     // [07] Finalizar el proceso de recarga
     recargarSaldoIngresado();
