@@ -170,8 +170,11 @@ void recargarSaldoIngresado()
   {
     lcd.clear();
     lcd.print("Procesando...");
-    
+    lcd.setCursor(0, 1);
+    lcd.print("Mantener tarjeta");
+
     // Serial.println("Procesando...");
+    // Serial.println("Mantener tarjeta");
     // Serial.println();
     delay(3000);
 
@@ -180,8 +183,7 @@ void recargarSaldoIngresado()
     // Mostrar el saldo total
     lcd.clear();
     lcd.print("Saldo tot: ");
-    
-    // Serial.println("----------------");
+
     // Serial.println("Saldo tot: ");
     // Serial.println();
 
@@ -210,7 +212,8 @@ void setup()
 {
   // Si se ocupa un objeto tipo LiquidCrystal
   // no puedes incializar el puerto serie, de lo contrario
-  // no se mostrará el mensaje en la pantalla LCD
+  // no se mostrarán los mensajes en la pantalla LCD
+
   // Serial.begin(9600);
 
   lcd.begin(16, 2);
@@ -237,6 +240,7 @@ void loop()
 {
   // El While no impide que se ejecute la impresión "LOOP PRINCIPAL".
   // Durante el loop sólo hay que utilizar una vez IsNewCardPresent y ReadCardSerial
+
   // Serial.println("LOOP PRINCIPAL");
 
   // [01] Si no hay una tarjeta presente en el módulo lector
@@ -294,7 +298,7 @@ void loop()
       lcd.print("Saldo ini: ");
       lcd.setCursor(0, 1);
       lcd.print("No pasar de 120");
-      
+
       // Serial.println("Saldo ini: ");
       // Serial.println("No pasar de 120");
       // Serial.println();
@@ -317,7 +321,7 @@ void loop()
       lcd.print("Monto ing: " + String(montoIngresado));
       lcd.setCursor(0, 1);
       lcd.print("Saldo pen: ");
-      
+
       // Serial.println("Monto ing: " + String(montoIngresado));
       // Serial.println("Saldo pen: ");
       // Serial.println();
