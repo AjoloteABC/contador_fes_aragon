@@ -1,4 +1,4 @@
-#include<SPI.h>
+#include <SPI.h>
 #include <MFRC522.h>
 #include <LiquidCrystal.h>
 
@@ -8,6 +8,8 @@
 #define RST_PIN 9
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);
+
+String identificador = "";
 
 // Entre menor sea el retraso, menos probabilidad
 // de no registrar una moneda
@@ -72,14 +74,14 @@ void registrarInOut()
 {
   if (digitalRead(pinFototransistorIn))
   {
-    // Serial.println("Entrada...");
+    Serial.println("Entrada...");
 
     estadoFototransistorIn = true;
     estadoFototransistorOut = false;
   }
   if (digitalRead(pinFototransistorOut))
   {
-    // Serial.println("Salida...");
+    Serial.println("Salida...");
 
     estadoFototransistorIn = false;
     estadoFototransistorOut = true;
@@ -168,24 +170,24 @@ void recargarSaldoIngresado()
 {
   if (digitalRead(pinRecargar) && saldoPendiente)
   {
-    lcd.clear();
-    lcd.print("Procesando...");
-    lcd.setCursor(0, 1);
-    lcd.print("Mantener tarjeta");
+    // lcd.clear();
+    // lcd.print("Procesando...");
+    // lcd.setCursor(0, 1);
+    // lcd.print("Mantener tarjeta");
 
-    // Serial.println("Procesando...");
-    // Serial.println("Mantener tarjeta");
-    // Serial.println();
+    Serial.println("Procesando...");
+    Serial.println("Mantener tarjeta");
+    Serial.println();
     delay(3000);
 
     // REALIZAR RECARGA
 
     // Mostrar el saldo total
-    lcd.clear();
-    lcd.print("Saldo tot: ");
+    // lcd.clear();
+    // lcd.print("Saldo tot: ");
 
-    // Serial.println("Saldo tot: ");
-    // Serial.println();
+    Serial.println("Saldo tot: ");
+    Serial.println();
 
     for (int i = 0; i <= 3; i++)
     {
@@ -214,9 +216,9 @@ void setup()
   // no puedes incializar el puerto serie, de lo contrario
   // no se mostrarán los mensajes en la pantalla LCD
 
-  // Serial.begin(9600);
+  Serial.begin(9600);
 
-  lcd.begin(16, 2);
+  // lcd.begin(16, 2);
 
   SPI.begin();
 
@@ -248,11 +250,11 @@ void loop()
   {
     if (saldoPendiente)
     {
-      lcd.clear();
-      lcd.print("Regresar Tarjeta");
+      // lcd.clear();
+      // lcd.print("Regresar Tarjeta");
 
-      // Serial.println("Regresar Tarjeta");
-      // Serial.println();
+      Serial.println("Regresar Tarjeta");
+      Serial.println();
 
       tone(pinSpeaker, 200);
       delay(500);
@@ -260,11 +262,11 @@ void loop()
       delay(250);
       return;
     }
-    lcd.clear();
-    lcd.print("Ingresar Tarjeta");
+    // lcd.clear();
+    // lcd.print("Ingresar Tarjeta");
 
-    // Serial.println("Ingresar Tarjeta");
-    // Serial.println();
+    Serial.println("Ingresar Tarjeta");
+    Serial.println();
     delay(retraso);
     return;
   }
@@ -273,10 +275,27 @@ void loop()
   // El while se debe ocupar en lugar de un if
   while (mfrc522.PICC_ReadCardSerial())
   {
-    /*
-      [03] VERIFICAR SI EL USUARIO EXISTE EN LA BASE DE DATOS
+    if (!saldoPendiente)
+    {
+      identificador = "/";
 
-      Si no se encuentra el identificador en la B.D.
+      for (byte i = 0; i < mfrc522.uid.size; i++)
+      {
+        if (mfrc522.uid.uidByte[i] < 0x10)
+        {
+          identificador = identificador + "0" + String(mfrc522.uid.uidByte[i], HEX);
+        }
+        else
+        {
+          identificador = identificador + String(mfrc522.uid.uidByte[i], HEX);
+        }
+      }
+      Serial.println(identificador);
+
+      /*
+        [03] VERIFICAR SI EL USUARIO EXISTE EN LA BASE DE DATOS
+
+        Si no se encuentra el identificador en la B.D.
 
         Serial.println("Tarjeta invalida");
         Serial.println();
@@ -290,18 +309,16 @@ void loop()
           delay(250);
         }
         mfrc522.PICC_HaltA();
-    */
+      */
 
-    if (!saldoPendiente)
-    {
-      lcd.clear();
-      lcd.print("Saldo ini: ");
-      lcd.setCursor(0, 1);
-      lcd.print("No pasar de 120");
+      // lcd.clear();
+      // lcd.print("Saldo ini: ");
+      // lcd.setCursor(0, 1);
+      // lcd.print("No pasar de 120");
 
-      // Serial.println("Saldo ini: ");
-      // Serial.println("No pasar de 120");
-      // Serial.println();
+      Serial.println("Saldo ini: ");
+      Serial.println("No pasar de 120");
+      Serial.println();
       delay(retraso);
     }
 
@@ -317,14 +334,14 @@ void loop()
     // No hay que agregar la condición monedaNueva, de lo contrario jamás hará la impresión
     if (!estadoFototransistorIn && estadoFototransistorOut && saldoPendiente)
     {
-      lcd.clear();
-      lcd.print("Monto ing: " + String(montoIngresado));
-      lcd.setCursor(0, 1);
-      lcd.print("Saldo pen: ");
+      // lcd.clear();
+      // lcd.print("Monto ing: " + String(montoIngresado));
+      // lcd.setCursor(0, 1);
+      // lcd.print("Saldo pen: ");
 
-      // Serial.println("Monto ing: " + String(montoIngresado));
-      // Serial.println("Saldo pen: ");
-      // Serial.println();
+      Serial.println("Monto ing: " + String(montoIngresado));
+      Serial.println("Saldo pen: ");
+      Serial.println();
       delay(retraso);
     }
 
